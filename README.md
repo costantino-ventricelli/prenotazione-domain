@@ -1,2 +1,2 @@
 # prenotazione-domain
-Progetto filale stage 2025
+Gestisce il processo di prenotazione, inclusa la verifica della disponibilità e la prevenzione di conflitti.
