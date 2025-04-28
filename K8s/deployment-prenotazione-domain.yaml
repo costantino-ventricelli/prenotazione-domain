@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: prenotazione-domain
-        image: # da definire        
+        image: prenotazione:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
