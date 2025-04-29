@@ -1,11 +1,13 @@
 package it.links.prenotazione_domain.controller;
 
 import it.links.prenotazione_domain.dto.AccessoRispostaDTO;
+import it.links.prenotazione_domain.entity.PrenotazioneEntity;
 import it.links.prenotazione_domain.service.AccessoService;
 import it.links.prenotazione_domain.entity.UtenteEntity;
 import it.links.prenotazione_domain.repository.UtenteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,18 +20,20 @@ public class AccessoController {
 
     @GetMapping("/verifica")
     public AccessoRispostaDTO verificaAccesso(@RequestParam Long utenteId, @RequestParam Long postazioneId) {
-        // Verifica l'accesso
         boolean accessoConsentito = accessoService.verificaAccesso(utenteId, postazioneId);
 
-        // Recupera l'utente per ottenere username e ruolo
         UtenteEntity utente = utenteRepository.findById(utenteId).orElse(null);
         String username = (utente != null) ? utente.getEmail() : "Utente non trovato";
         String ruolo = (utente != null) ? utente.getRuolo().getNome() : "Ruolo non trovato";
 
-        // Crea il messaggio di risposta
         String messaggio = accessoConsentito ? "Accesso consentito" : "Accesso negato";
 
-        // Restituisce un DTO con messaggio, stato, username e ruolo
         return new AccessoRispostaDTO(messaggio, accessoConsentito, username, ruolo);
     }
+    @PostMapping("/prenotazioni")
+    public ResponseEntity<PrenotazioneEntity> prenotaPostazione(@RequestBody PrenotazioneEntity prenotazione) {
+        PrenotazioneEntity createdPrenotazione = accessoService.prenotaPostazione(prenotazione);
+        return new ResponseEntity<>(createdPrenotazione, HttpStatus.CREATED);
+    }
+
 }
