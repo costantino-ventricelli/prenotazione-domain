@@ -1,51 +1,40 @@
 package it.links.prenotazione_domain.service;
 
-import it.links.prenotazione_domain.entity.PrenotazioneEntity;
+import it.links.prenotazione_domain.dto.AccessoRispostaDTO;
 import it.links.prenotazione_domain.entity.UtenteEntity;
-import it.links.prenotazione_domain.repository.Prenotazione1Repository;
 import it.links.prenotazione_domain.repository.Prenotazione2Repository;
 import it.links.prenotazione_domain.repository.UtenteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AccessoService {
 
-    private final Prenotazione1Repository prenotazione1Repository;
     private final Prenotazione2Repository prenotazione2Repository;
     private final UtenteRepository utenteRepository;
 
     public boolean verificaAccesso(Long utenteId, Long postazioneId) {
-        // Verifica che l'utente esista
         UtenteEntity utente = utenteRepository.findById(utenteId).orElse(null);
-        if (utente == null) {
-            return false; // Utente non trovato
-        }
+        if (utente == null) return false;
 
-        // Verifica se l'utente ha il permesso (ad esempio, solo gli admin possono prenotare)
-        if (utente.getRuolo().getNome().equals("admin")) {
-            return true; // Gli admin possono prenotare ovunque
-        }
+        if ("admin".equals(utente.getRuolo().getNome())) return true;
 
-        // Verifica se l'utente ha una prenotazione per quella postazione nella data odierna
-        return !prenotazione2Repository.existsByUtenteIdAndPostazioneIdAndData(utenteId, postazioneId, java.time.LocalDate.now());
-    }
-    //controllo se la postazione è libera prenota altrimenti avvisa che è già occupata
-    public PrenotazioneEntity prenotaPostazione(PrenotazioneEntity prenotazione) {
-        boolean sovrapposta = prenotazione1Repository.existsByPostazioneIdAndDataAndOraInizioLessThanAndOraFineGreaterThan(
-                prenotazione.getPostazione().getId(),
-                prenotazione.getData(),
-                prenotazione.getOraFine(),
-                prenotazione.getOraInizio()
-        );
-
-        if (sovrapposta) {
-            throw new IllegalArgumentException("Esiste già una prenotazione per questa postazione in quell'intervallo.");
-        }
-
-        return prenotazione1Repository.save(prenotazione);
+        return prenotazione2Repository.existsByUtenteIdAndPostazioneIdAndData(
+                utenteId, postazioneId, LocalDate.now());
     }
 
+    public AccessoRispostaDTO costruisciRispostaAccesso(Long utenteId, Long postazioneId) {
+        boolean accessoConsentito = verificaAccesso(utenteId, postazioneId);
+
+        UtenteEntity utente = utenteRepository.findById(utenteId).orElse(null);
+        String username = Optional.ofNullable(utente).map(UtenteEntity::getEmail).orElse("Utente non trovato");
+        String ruolo = Optional.ofNullable(utente).map(u -> u.getRuolo().getNome()).orElse("Ruolo non trovato");
+        String messaggio = accessoConsentito ? "Accesso consentito" : "Accesso negato";
+
+        return new AccessoRispostaDTO(messaggio, accessoConsentito, username, ruolo);
+    }
 }
-
