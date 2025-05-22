@@ -1,7 +1,9 @@
 package it.links.prenotazione_domain.service;
 
 import it.links.prenotazione_domain.dto.AccessoRispostaDTO;
+import it.links.prenotazione_domain.dto.UtenteDTO;
 import it.links.prenotazione_domain.entity.UtenteEntity;
+import it.links.prenotazione_domain.mapper.UtenteMapper;
 import it.links.prenotazione_domain.repository.Prenotazione2Repository;
 import it.links.prenotazione_domain.repository.UtenteRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ public class AccessoService {
 
     private final Prenotazione2Repository prenotazione2Repository;
     private final UtenteRepository utenteRepository;
+    private final UtenteMapper utenteMapper;
 
     public boolean verificaAccesso(Long utenteId, Long postazioneId) {
         UtenteEntity utente = utenteRepository.findById(utenteId).orElse(null);
@@ -30,9 +33,16 @@ public class AccessoService {
     public AccessoRispostaDTO costruisciRispostaAccesso(Long utenteId, Long postazioneId) {
         boolean accessoConsentito = verificaAccesso(utenteId, postazioneId);
 
-        UtenteEntity utente = utenteRepository.findById(utenteId).orElse(null);
-        String username = Optional.ofNullable(utente).map(UtenteEntity::getEmail).orElse("Utente non trovato");
-        String ruolo = Optional.ofNullable(utente).map(u -> u.getRuolo().getNome()).orElse("Ruolo non trovato");
+        UtenteEntity utenteEntity = utenteRepository.findById(utenteId).orElse(null);
+        UtenteDTO utente = Optional.ofNullable(utenteEntity)
+                .map(utenteMapper::toDto)
+                .orElse(null);
+
+        String username = utente != null ? utente.getEmail() : "Utente non trovato";
+        String ruolo = utenteEntity != null && utenteEntity.getRuolo() != null
+                ? utenteEntity.getRuolo().getNome()
+                : "Ruolo non trovato";
+
         String messaggio = accessoConsentito ? "Accesso consentito" : "Accesso negato";
 
         return new AccessoRispostaDTO(messaggio, accessoConsentito, username, ruolo);
