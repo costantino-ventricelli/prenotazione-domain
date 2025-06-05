@@ -5,28 +5,28 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Data
 @Table(name = "prenotazioni")
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class PrenotazioneEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private LocalDate data;
-    private LocalDateTime oraInizio;
-    private LocalDateTime oraFine;
+    private LocalTime oraInizio;
+    private LocalTime oraFine;
 
-    @ManyToOne
-    @JoinColumn(name = "utenti_id")
-    private UtenteEntity utente;
+    @Column(name = "utenti_id")
+    private Long utenteId;
 
-    @ManyToOne
-    @JoinColumn(name = "postazione_id")
-    private PostazioneEntity postazione;
+    @Column(name = "postazione_id")
+    private Long postazioneId;
 }
 
 

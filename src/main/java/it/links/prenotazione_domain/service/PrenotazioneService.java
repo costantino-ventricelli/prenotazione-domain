@@ -1,39 +1,78 @@
 package it.links.prenotazione_domain.service;
 
+import it.links.prenotazione_domain.dto.ErroreDTO;
 import it.links.prenotazione_domain.dto.PrenotazioneDTO;
+import it.links.prenotazione_domain.entity.PostazioneEntity;
 import it.links.prenotazione_domain.entity.PrenotazioneEntity;
-import it.links.prenotazione_domain.mapper.PrenotazioneMapper;
+import it.links.prenotazione_domain.entity.UtenteEntity;
 import it.links.prenotazione_domain.repository.PostazioneRepository;
-import it.links.prenotazione_domain.repository.Prenotazione2Repository;
+import it.links.prenotazione_domain.repository.PrenotazioneRepository;
 import it.links.prenotazione_domain.repository.UtenteRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
-@RequiredArgsConstructor
 public class PrenotazioneService {
 
-    private final Prenotazione2Repository prenotazione2Repository;
-    private final PrenotazioneMapper prenotazioneMapper;
-    private final UtenteRepository utenteRepository;
-    private final PostazioneRepository postazioneRepository;
+    @Autowired
+    private PrenotazioneRepository prenotazioneRepository;
 
-    public PrenotazioneDTO prenotaPostazione(PrenotazioneDTO dto) {
-        PrenotazioneEntity prenotazione = prenotazioneMapper.toEntity(dto);
+    @Autowired
+    private UtenteRepository utenteRepository;
 
-        prenotazione.setUtente(utenteRepository.findById(dto.getUtenteId()).orElseThrow());
-        prenotazione.setPostazione(postazioneRepository.findById(dto.getPostazioneId()).orElseThrow());
+    @Autowired
+    private PostazioneRepository postazioneRepository;
 
-        boolean sovrapposta = prenotazione2Repository
-                .existsByPostazioneIdAndDataAndOraInizioLessThanAndOraFineGreaterThan(
-                        dto.getPostazioneId(), dto.getData(), dto.getOraFine(), dto.getOraInizio());
+    public ResponseEntity<?> prenotaPostazione(PrenotazioneDTO dto){
+        Optional<UtenteEntity> utente = utenteRepository.findByEmail(dto.getEmail());
+        Optional<PostazioneEntity> postazione = postazioneRepository.findById(dto.getPostazioneId());
 
-        if (sovrapposta) {
-            throw new IllegalArgumentException("Esiste già una prenotazione per questa postazione in quell'intervallo.");
+        if(utente.isEmpty() || postazione.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErroreDTO("Utente non trovato o id postazione non valida."));
         }
 
-        PrenotazioneEntity saved = prenotazione2Repository.save(prenotazione);
-        return prenotazioneMapper.toDto(saved);
+        boolean conflitto = prenotazioneRepository.verificaConflitto(
+                dto.getData(),
+                dto.getOraInizio(),
+                dto.getOraFine(),
+                utente.get().getId(),
+                dto.getPostazioneId()
+        );
+
+        if(!conflitto) {
+            PrenotazioneEntity prenotazione = PrenotazioneEntity.builder()
+                    .data(dto.getData())
+                    .oraInizio(dto.getOraInizio())
+                    .oraFine(dto.getOraFine())
+                    .utenteId(utente.get().getId())
+                    .postazioneId(dto.getPostazioneId())
+                    .build();
+
+            prenotazioneRepository.save(prenotazione);
+            dto.setMessaggio("insert_success");
+            return ResponseEntity.ok(dto);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErroreDTO("Postazione già occupata o orario incompatibile con altre prenotazioni."));
+        }
     }
+
+    public ResponseEntity<?> eliminaPrenotazione(Long id){
+        Optional<PrenotazioneEntity> prenotazione = prenotazioneRepository.findById(id);
+
+        if (prenotazione.isEmpty()){
+             return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                     .body(new ErroreDTO("reservation_not_found"));
+         }
+
+        prenotazioneRepository.delete(prenotazione.get());
+        return ResponseEntity.ok().build();
+    }
+
 }
 

@@ -16,9 +16,5 @@ public class SedeEntity {
     private Long id;
 
     private String luogo;
-
-    @JsonBackReference
-    @OneToMany(mappedBy = "sede")
-    private List<StanzaEntity> stanze;
 }
 

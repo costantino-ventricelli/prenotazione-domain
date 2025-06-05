@@ -18,11 +18,6 @@ public class PostazioneEntity {
 
     private String nomePostazione;
 
-    @ManyToOne
-    @JoinColumn(name = "stanza_id")
-    private StanzaEntity stanza;
-
-    @JsonBackReference
-    @OneToMany(mappedBy = "postazione")
-    private List<PrenotazioneEntity> prenotazioni;
+    @Column(name = "stanza_id")
+    private Long stanzaId;
 }

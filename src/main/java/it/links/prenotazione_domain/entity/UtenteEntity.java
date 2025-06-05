@@ -22,15 +22,14 @@ public class UtenteEntity {
     private String password;
     private String email;
 
-    @Column(name = "percorso_foto", length = 500)
+    @Column(name = "percorso_foto", columnDefinition = "TEXT")
     private String percorsoFoto;
 
     @Column(name = "anno_assunzione")
     private Year annoAssunzione;
 
-    @ManyToOne
-    @JoinColumn(name = "ruolo_id", referencedColumnName = "id")
-    private RuoloEntity ruolo;
+    @Column(name = "ruolo_id")
+    private Integer ruoloId;
 }
 
 
